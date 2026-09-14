@@ -1,0 +1,1471 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <title>BharatOSINT Knowledge Graph</title>
+
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #0f172a;
+            color: white;
+            overflow: hidden;
+        }
+
+        /* =========================
+           HEADER
+        ========================= */
+
+        .header {
+            height: 82px;
+            padding: 15px 25px;
+            background: #1e293b;
+            border-bottom: 1px solid #334155;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 26px;
+        }
+
+        .stats {
+            margin-top: 6px;
+            color: #94a3b8;
+            font-size: 14px;
+        }
+
+        /* =========================
+           GRAPH
+        ========================= */
+
+        #graph {
+            position: absolute;
+            top: 82px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+
+            background: #f8fafc;
+        }
+
+        /* =========================
+           SEARCH PANEL
+        ========================= */
+
+        .search-panel {
+            position: absolute;
+            top: 100px;
+            left: 20px;
+
+            width: 300px;
+
+            background: rgba(15, 23, 42, 0.95);
+            padding: 15px;
+
+            border-radius: 10px;
+
+            z-index: 10;
+
+            box-shadow: 0 8px 25px rgba(0,0,0,0.25);
+        }
+
+        .search-panel input {
+            width: 100%;
+
+            padding: 10px 12px;
+
+            border: 1px solid #475569;
+            border-radius: 7px;
+
+            background: #1e293b;
+            color: white;
+
+            outline: none;
+
+            font-size: 14px;
+        }
+
+        .search-panel input:focus {
+            border-color: #38bdf8;
+        }
+
+        #searchResults {
+            max-height: 250px;
+            overflow-y: auto;
+
+            margin-top: 8px;
+        }
+
+        .search-result {
+            padding: 8px;
+
+            border-radius: 6px;
+
+            cursor: pointer;
+
+            font-size: 13px;
+
+            color: #cbd5e1;
+        }
+
+        .search-result:hover {
+            background: #334155;
+            color: white;
+        }
+
+        /* =========================
+           DETAILS PANEL
+        ========================= */
+
+        .details-panel {
+            position: absolute;
+
+            top: 100px;
+            right: 20px;
+
+            width: 300px;
+
+            background: rgba(15, 23, 42, 0.96);
+
+            border-radius: 10px;
+
+            padding: 18px;
+
+            z-index: 10;
+
+            display: none;
+
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        }
+
+        .details-panel h2 {
+            margin-top: 0;
+
+            font-size: 20px;
+
+            word-break: break-word;
+        }
+
+        .detail-row {
+            margin-top: 12px;
+
+            color: #cbd5e1;
+
+            font-size: 14px;
+        }
+
+        .detail-label {
+            color: #64748b;
+
+            font-size: 12px;
+
+            text-transform: uppercase;
+
+            margin-bottom: 3px;
+        }
+
+        .close-btn {
+            float: right;
+
+            cursor: pointer;
+
+            color: #94a3b8;
+
+            font-size: 18px;
+        }
+
+        .close-btn:hover {
+            color: white;
+        }
+
+        /* =========================
+           LEGEND
+        ========================= */
+
+        .legend {
+            position: absolute;
+
+            bottom: 20px;
+            left: 20px;
+
+            background: rgba(15, 23, 42, 0.95);
+
+            padding: 12px 15px;
+
+            border-radius: 8px;
+
+            z-index: 10;
+
+            font-size: 12px;
+        }
+
+        .legend-title {
+            font-weight: bold;
+
+            margin-bottom: 8px;
+        }
+
+        .legend-item {
+            display: flex;
+
+            align-items: center;
+
+            margin: 5px 0;
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+
+            border-radius: 50%;
+
+            margin-right: 7px;
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+    <!-- =========================
+         HEADER
+    ========================= -->
+
+    <div class="header">
+
+        <h1>
+            🕸️ BharatOSINT Knowledge Graph
+        </h1>
+
+        <div
+            class="stats"
+            id="stats"
+        >
+            Loading graph...
+        </div>
+
+    </div>
+
+
+    <!-- =========================
+         SEARCH
+    ========================= -->
+
+    <div class="search-panel">
+
+        <input
+            id="searchInput"
+            type="text"
+            placeholder="🔍 Search entity..."
+        >
+
+        <select id="entityTypeFilter">
+    <option value="all">All Entities</option>
+    <option value="person">Person</option>
+<option value="organization">Organization</option>
+<option value="location">Location</option>
+<option value="threat">Threat</option>
+<option value="email">Email</option>
+<option value="url">URL</option>
+<option value="date">Date</option>
+</select>
+
+        <div id="searchResults"></div>
+
+    </div>
+
+
+    <!-- =========================
+         DETAILS
+    ========================= -->
+
+    <div
+        class="details-panel"
+        id="detailsPanel"
+        style="
+                max-height: 150px;
+                overflow-y: auto;
+                line-height: 1.5;
+                word-break: break-word;
+            "
+    >
+
+        <span
+            class="close-btn"
+            onclick="closeDetails()"
+        >
+            ✕
+        </span>
+
+        <h2 id="detailName">
+            Entity
+        </h2>
+
+        <div class="detail-row">
+
+            <div class="detail-label">
+                Type
+            </div>
+
+            <div id="detailType">
+                -
+            </div>
+
+        </div>
+
+
+        <div class="detail-row">
+
+            <div class="detail-label">
+                Connections
+            </div>
+
+            <div id="detailConnections">
+                -
+            </div>
+
+        </div>
+
+
+        <div class="detail-row">
+
+            <div class="detail-label">
+                EVIDENCE
+            </div>
+
+            <div id="detailId">
+                -
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================
+         GRAPH
+    ========================= -->
+
+    <div id="graph"></div>
+
+
+    <!-- =========================
+         LEGEND
+    ========================= -->
+
+    <div class="legend">
+
+        <div class="legend-title">
+            Entity Types
+        </div>
+
+        <div id="legendContent">
+            Loading...
+        </div>
+
+    </div>
+
+
+    <script>
+
+
+        let network;
+
+        let allNodes;
+
+        let allEdges;
+
+
+        /* =========================
+           COLORS
+        ========================= */
+
+        const colors = [
+            "#ef4444",
+            "#3b82f6",
+            "#22c55e",
+            "#f59e0b",
+            "#a855f7",
+            "#06b6d4",
+            "#ec4899",
+            "#84cc16"
+        ];
+
+
+        let typeColors = {};
+
+        let colorIndex = 0;
+
+
+        /* =========================
+           GET COLOR
+        ========================= */
+
+        function getTypeColor(type) {
+
+            if (!typeColors[type]) {
+
+                typeColors[type] =
+                    colors[colorIndex % colors.length];
+
+                colorIndex++;
+
+            }
+
+            return typeColors[type];
+
+        }
+
+
+        /* =========================
+           LOAD GRAPH
+        ========================= */
+
+        async function loadGraph() {
+
+            try {
+
+                const response =
+                    await fetch("/graph");
+
+                const data =
+                    await response.json();
+
+
+                /* =========================
+                   NODES
+                ========================= */
+
+                const nodeData =
+                    data.nodes.map(node => {
+
+                        const color =
+                            getTypeColor(node.type);
+
+                        return {
+
+                            id: node.id,
+
+                            label: node.label,
+
+                            group: node.type,
+
+                            title:
+                                `${node.type}: ${node.label}`,
+
+                            color: {
+
+                                background: color,
+
+                                border: "#ffffff",
+
+                                highlight: {
+
+                                    background: "#ffffff",
+
+                                    border: color
+
+                                }
+
+                            },
+
+                            font: {
+
+                                color: "#111827",
+
+                                size: 13
+
+                            }
+
+                        };
+
+                    });
+
+
+                /* =========================
+                   EDGES
+                ========================= */
+
+                const edgeData =
+    data.edges.map(edge => {
+
+        return {
+
+            id: edge.id,
+
+            from: edge.source,
+
+            to: edge.target,
+
+            // Relationship label normally hidden
+            label: "",
+
+            // Original relationship save kar rahe hain
+            relationLabel: edge.label || "",
+
+            // Evidence + source ID
+            evidence: edge.evidence || "",
+
+            source_id: edge.source_id || "",
+
+            arrows: "to",
+
+            title:
+                edge.evidence ||
+                edge.label ||
+                "",
+
+            color: {
+                color: "#94a3b8",
+                highlight: "#ef4444",
+                opacity: 0.25
+            },
+
+            width: 1,
+
+            smooth: {
+                type: "dynamic"
+            },
+
+            font: {
+                size: 9,
+                color: "#475569",
+                strokeWidth: 3,
+                strokeColor: "#ffffff"
+            }
+
+        };
+
+    });
+
+
+allNodes =
+    new vis.DataSet(nodeData);
+
+allEdges =
+    new vis.DataSet(edgeData);
+
+
+                /* =========================
+                   GRAPH DATA
+                ========================= */
+
+                const graphData = {
+
+                    nodes: allNodes,
+
+                    edges: allEdges
+
+                };
+
+
+                /* =========================
+                   OPTIONS
+                ========================= */
+
+                const options = {
+
+                    autoResize: true,
+
+                    nodes: {
+
+                        shape: "dot",
+
+                        size: 10,
+
+                        borderWidth: 1,
+
+                        scaling: {
+
+                            min: 6,
+
+                            max: 25
+
+                        }
+
+                    },
+
+
+                    edges: {
+
+                        width: 1,
+
+                        selectionWidth: 3,
+
+                        smooth: {
+
+                            enabled: true,
+
+                            type: "dynamic"
+
+                        }
+
+                    },
+
+
+                    physics: {
+    enabled: true,
+    stabilization: {
+        enabled: true,
+        iterations: 100,
+        fit: true
+    },
+    barnesHut: {
+        gravitationalConstant: -3000,
+        centralGravity: 0.1,
+        springLength: 150,
+        springConstant: 0.02,
+        damping: 0.5,
+        avoidOverlap: 1
+    }
+},
+
+
+                    interaction: {
+
+                        hover: true,
+
+                        navigationButtons: true,
+
+                        keyboard: true,
+
+                        multiselect: false,
+
+                        tooltipDelay: 100,
+
+                        hideEdgesOnDrag: true
+
+                    }
+
+                };
+
+
+                /* =========================
+                   CREATE NETWORK
+                ========================= */
+
+                const container =
+                    document.getElementById("graph");
+
+
+                network =
+                    new vis.Network(
+                        container,
+                        graphData,
+                        options
+                    );
+
+
+                /* =========================
+                   STATS
+                ========================= */
+
+                document.getElementById("stats")
+                    .innerText =
+                    `${data.total_nodes} entities • ${data.total_edges} relationships`;
+
+
+                /* =========================
+                   LEGEND
+                ========================= */
+
+                createLegend();
+
+
+                /* =========================
+                   NODE CLICK
+                ========================= */
+
+                network.on(
+    "click",
+    function(params) {
+
+        if (params.nodes.length > 0) {
+            const nodeId = params.nodes[0];
+            showNodeDetails(nodeId);
+            return;
+        }
+
+        if (params.edges.length > 0) {
+
+    const edgeId = params.edges[0];
+
+    const edge = allEdges.get(edgeId);
+
+    if (!edge) {
+        return;
+    }
+
+    const sourceNode = allNodes.get(edge.from);
+    const targetNode = allNodes.get(edge.to);
+
+    // =====================================
+    // RELATIONSHIP DETAILS
+    // =====================================
+
+    document.getElementById("detailName")
+        .innerText =
+        edge.label || "Relationship";
+
+    document.getElementById("detailType")
+        .innerText =
+        "Relationship";
+
+    document.getElementById("detailConnections")
+        .innerText =
+        `${sourceNode?.label || edge.from} → ${targetNode?.label || edge.to}`;
+
+    // =====================================
+    // EVIDENCE / SOURCE
+    // =====================================
+
+    document.getElementById("detailId")
+        .innerText =
+        edge.evidence ||
+"No evidence available";
+
+    document.getElementById("detailsPanel")
+        .style.display =
+        "block";
+}
+    }
+);
+            
+}
+
+catch (error) {
+
+                console.error(error);
+
+                document.getElementById("stats")
+                    .innerText =
+                    "Failed to load graph";
+
+            }
+
+        }
+
+
+        /* =========================
+           NODE DETAILS
+        ========================= */
+
+    function showNodeDetails(nodeId) {
+
+    const node = allNodes.get(nodeId);
+
+    if (!node) {
+        return;
+    }
+
+
+    // =====================================
+    // GET CONNECTED EDGES
+    // =====================================
+
+    const connectedEdges =
+        network.getConnectedEdges(nodeId);
+
+
+    // =====================================
+    // UPDATE DETAILS PANEL
+    // =====================================
+
+    document.getElementById("detailName").innerText =
+        node.label;
+
+    document.getElementById("detailType").innerText =
+        node.type || "Entity";
+
+    document.getElementById("detailConnections").innerText =
+        connectedEdges.length;
+
+    document.getElementById("detailId").innerText =
+        node.id;
+
+    document.getElementById("detailsPanel").style.display =
+        "block";
+
+
+    // =====================================
+    // HIGHLIGHT SELECTED NODE
+    // =====================================
+
+    network.selectNodes([nodeId]);
+
+
+    // =====================================
+    // SHOW RELATIONSHIP LABELS
+    // ONLY FOR CONNECTED EDGES
+    // =====================================
+
+    const edgeUpdates =
+        connectedEdges.map(edgeId => {
+
+            const edge =
+                allEdges.get(edgeId);
+
+            if (!edge) {
+                return null;
+            }
+
+            return {
+
+                id: edgeId,
+
+                label:
+                    edge.relationLabel || "",
+
+                color: {
+                    color: "#ef4444",
+                    opacity: 0.75
+                },
+
+                width: 2
+
+            };
+
+        }).filter(Boolean);
+
+
+    // ONE BULK UPDATE
+    // Instead of updating edges one-by-one
+
+    if (edgeUpdates.length > 0) {
+
+        allEdges.update(edgeUpdates);
+
+    }
+
+
+    // =====================================
+    // FOCUS SELECTED NODE
+    // =====================================
+
+    network.focus(
+        nodeId,
+        {
+
+            scale: 1.4,
+
+            animation: {
+
+                duration: 500,
+
+                easingFunction:
+                    "easeInOutQuad"
+
+            }
+
+        }
+    );
+
+}
+
+
+        /* =========================
+           CLOSE DETAILS
+        ========================= */
+
+        function closeDetails() {
+
+    document.getElementById(
+        "detailsPanel"
+    ).style.display =
+        "none";
+
+
+    network.unselectAll();
+
+
+    // Hide all relationship labels again
+
+    allEdges.forEach(edge => {
+
+        allEdges.update({
+
+            id: edge.id,
+
+            label: "",
+
+            color: {
+                color: "#94a3b8",
+                opacity: 0.25
+            },
+
+            width: 1
+
+        });
+
+    });
+
+}
+
+
+/* =========================
+   RESET GRAPH
+========================= */
+
+function resetGraph() {
+
+    // Reset node opacity
+
+    const nodeUpdates = [];
+
+allNodes.forEach(node => {
+    nodeUpdates.push({
+        id: node.id,
+        opacity: 0.15
+    });
+});
+
+allNodes.update(nodeUpdates);
+
+
+    // Reset edges
+
+    const edgeUpdates = [];
+
+allEdges.forEach(edge => {
+    edgeUpdates.push({
+        id: edge.id,
+        color: {
+            color: "#94a3b8",
+            opacity: 0.08
+        },
+        width: 1
+    });
+});
+
+allEdges.update(edgeUpdates);
+
+
+    // Remove selection
+
+    network.unselectAll();
+
+
+    // Close details
+
+    document.getElementById(
+        "detailsPanel"
+    ).style.display =
+        "none";
+
+}
+
+function highlightConnections(nodeId) {
+
+    // =====================================
+    // RESET GRAPH FIRST
+    // =====================================
+
+    const nodeUpdates = [];
+
+    allNodes.forEach(node => {
+        nodeUpdates.push({
+            id: node.id,
+            opacity: 0.15
+        });
+    });
+
+    allNodes.update(nodeUpdates);
+
+
+    const edgeUpdates = [];
+
+    allEdges.forEach(edge => {
+        edgeUpdates.push({
+            id: edge.id,
+            color: {
+                color: "#94a3b8",
+                opacity: 0.08
+            },
+            width: 1
+        });
+    });
+
+    allEdges.update(edgeUpdates);
+
+
+    // =====================================
+    // SELECTED NODE
+    // =====================================
+
+    allNodes.update({
+        id: nodeId,
+        opacity: 1
+    });
+
+
+    // =====================================
+    // GET CONNECTED EDGES
+    // =====================================
+
+    const connectedEdges =
+        network.getConnectedEdges(nodeId);
+
+
+    const connectedNodeIds = new Set([nodeId]);
+
+
+    // =====================================
+    // HIGHLIGHT CONNECTIONS
+    // =====================================
+
+    connectedEdges.forEach(edgeId => {
+
+        const edge = allEdges.get(edgeId);
+
+        if (!edge) {
+            return;
+        }
+
+        connectedNodeIds.add(edge.from);
+        connectedNodeIds.add(edge.to);
+
+    });
+
+
+    // =====================================
+    // HIGHLIGHT CONNECTED NODES
+    // =====================================
+
+    const connectedNodeUpdates = [];
+
+    connectedNodeIds.forEach(id => {
+
+        connectedNodeUpdates.push({
+            id: id,
+            opacity: 1
+        });
+
+    });
+
+    allNodes.update(connectedNodeUpdates);
+
+
+    // =====================================
+    // HIGHLIGHT CONNECTED EDGES
+    // =====================================
+
+    const connectedEdgeUpdates =
+        connectedEdges.map(edgeId => {
+
+            const edge = allEdges.get(edgeId);
+
+            return {
+                id: edgeId,
+
+                color: {
+                    color: "#ef4444",
+                    opacity: 0.8
+                },
+
+                width: 2
+            };
+
+        });
+
+    if (connectedEdgeUpdates.length > 0) {
+        allEdges.update(connectedEdgeUpdates);
+    }
+
+}
+
+        /* =========================
+           LEGEND
+        ========================= */
+
+        function createLegend() {
+
+            const container =
+                document.getElementById(
+                    "legendContent"
+                );
+
+
+            container.innerHTML = "";
+
+
+            Object.keys(typeColors)
+                .forEach(type => {
+
+                    const item =
+                        document.createElement(
+                            "div"
+                        );
+
+                    item.className =
+                        "legend-item";
+
+
+                    const dot =
+                        document.createElement(
+                            "div"
+                        );
+
+                    dot.className =
+                        "legend-dot";
+
+
+                    dot.style.background =
+                        typeColors[type];
+
+
+                    const text =
+                        document.createElement(
+                            "span"
+                        );
+
+                    text.innerText =
+                        type;
+
+
+                    item.appendChild(dot);
+
+                    item.appendChild(text);
+
+                    container.appendChild(item);
+
+                });
+
+        }
+
+
+        /* =========================
+           SEARCH
+        ========================= */
+
+        const searchInput =
+            document.getElementById(
+                "searchInput"
+            );
+
+            const entityTypeFilter =
+    document.getElementById("entityTypeFilter");
+
+
+            let searchTimeout;
+
+searchInput.addEventListener("input", function () {
+
+    const input = this;
+    const results =
+        document.getElementById("searchResults");
+
+    clearTimeout(searchTimeout);
+
+    searchTimeout = setTimeout(function () {
+
+        const query =
+            input.value
+                .toLowerCase()
+                .trim();
+
+        results.innerHTML = "";
+
+
+        // =====================================
+        // EMPTY SEARCH
+        // =====================================
+
+        if (!query) {
+            resetGraph();
+            return;
+        }
+
+
+        // =====================================
+// SEARCH BACKEND
+// =====================================
+
+fetch("/search", {
+    method: "POST",
+
+    headers: {
+        "Content-Type": "application/json"
+    },
+
+    body: JSON.stringify({
+        query: query
+    })
+
+})
+.then(response => response.json())
+
+.then(data => {
+
+    if (
+        data.status !== "success"
+    ) {
+        return;
+    }
+
+    // =====================================
+    // FIND MATCHING GRAPH NODES
+    // =====================================
+
+    const selectedType = entityTypeFilter.value;
+
+const matches = allNodes.get({
+    filter: function (node) {
+
+        const matchesSearch =
+            node.label &&
+            node.label
+                .toLowerCase()
+                .includes(query);
+
+        const matchesType =
+            selectedType === "all" ||
+            node.group === selectedType;
+
+        return matchesSearch && matchesType;
+    }
+});
+
+
+    // =====================================
+    // HIGHLIGHT MATCHES
+    // =====================================
+
+    const matchedIds =
+        new Set(
+            matches.map(node => node.id)
+        );
+
+
+    const nodeUpdates =
+        allNodes.get().map(node => ({
+
+            id: node.id,
+
+            opacity:
+                matchedIds.has(node.id)
+                    ? 1
+                    : 0.15
+
+        }));
+
+
+    allNodes.update(nodeUpdates);
+
+
+    // =====================================
+    // SEARCH RESULTS
+    // =====================================
+
+    results.innerHTML = "";
+
+    matches
+        .slice(0, 15)
+        .forEach(function (node) {
+
+            const div =
+                document.createElement("div");
+
+            div.className =
+                "search-result";
+
+            div.innerText =
+                `${node.label} (${node.group})`;
+
+            div.onclick = function () {
+
+                input.value =
+                    node.label;
+
+                results.innerHTML = "";
+
+                showNodeDetails(node.id);
+
+                network.focus(
+                    node.id,
+                    {
+                        scale: 1.5,
+
+                        animation: {
+                            duration: 500,
+                            easingFunction:
+                                "easeInOutQuad"
+                        }
+                    }
+                );
+
+                network.selectNodes(
+                    [node.id]
+                );
+
+            };
+
+            results.appendChild(div);
+
+        });
+
+})
+.catch(error => {
+
+    console.error(
+        "Search failed:",
+        error
+    );
+
+});
+
+
+        // =====================================
+        // UPDATE NODES IN ONE BATCH
+        // =====================================
+
+        const matchedIds =
+            new Set(
+                matches.map(node => node.id)
+            );
+
+        const nodeUpdates =
+            allNodes.get().map(node => ({
+                id: node.id,
+                opacity:
+                    matchedIds.has(node.id)
+                        ? 1
+                        : 0.15
+            }));
+
+        allNodes.update(nodeUpdates);
+
+
+        // =====================================
+        // SEARCH RESULTS
+        // =====================================
+
+        matches
+            .slice(0, 15)
+            .forEach(function (node) {
+
+                const div =
+                    document.createElement("div");
+
+                div.className =
+                    "search-result";
+
+                div.innerText =
+                    `${node.label} (${node.type || "entity"})`;
+
+                div.onclick = function () {
+
+    input.value =
+        node.label;
+
+    results.innerHTML = "";
+
+    showNodeDetails(node.id);
+
+    // =====================================
+    // FOCUS SELECTED ENTITY
+    // =====================================
+
+    network.focus(
+        node.id,
+        {
+            scale: 1.5,
+            animation: {
+                duration: 500,
+                easingFunction: "easeInOutQuad"
+            }
+        }
+    );
+
+    network.selectNodes([node.id]);
+
+    highlightConnections(node.id);
+
+};
+
+                results.appendChild(div);
+
+            });
+
+
+        // =====================================
+        // SINGLE MATCH
+        // =====================================
+
+        if (matches.length === 1) {
+
+            showNodeDetails(
+                matches[0].id
+            );
+
+        }
+
+    }, 300);
+
+});
+
+entityTypeFilter.addEventListener("change", function () {
+
+    const selectedType = this.value;
+
+    // All entities
+    if (selectedType === "all") {
+
+        allNodes.update(
+            allNodes.get().map(node => ({
+                id: node.id,
+                hidden: false,
+                opacity: 1
+            }))
+        );
+
+        return;
+    }
+
+
+    // Filter by entity type
+    const updates =
+        allNodes.get().map(node => ({
+
+            id: node.id,
+
+            hidden:
+    node.group !== selectedType,
+
+opacity:
+    node.group === selectedType
+        ? 1
+        : 0.15
+
+        }));
+
+
+    allNodes.update(updates);
+
+});
+
+
+        /* =========================
+           START
+        ========================= */
+
+        loadGraph();
+
+
+    </script>
+
+</body>
+
+</html>
