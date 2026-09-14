@@ -2,8 +2,8 @@ from dotenv import load_dotenv
 import os
 from fastapi.responses import FileResponse
 import re
-from analysis import analyze_articles
-from database import (
+from backend.analysis import analyze_articles
+from backend.database import (
     initialize_database,
     get_connection,
     save_source,
