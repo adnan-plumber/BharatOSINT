@@ -696,7 +696,12 @@ def get_relationships():
 @app.get("/graph")
 def get_graph():
 
-    conn = sqlite3.connect("bharatosint.db")
+    db_path = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "bharatosint.db"
+)
+
+    conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 

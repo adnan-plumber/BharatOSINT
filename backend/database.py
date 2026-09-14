@@ -1,8 +1,12 @@
 import sqlite3
+import os
+
 from datetime import datetime
 
-
-DB_NAME = "bharatosint.db"
+DB_NAME = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "bharatosint.db"
+)
 
 
 def get_connection():
