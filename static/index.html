@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BharatOSINT — AI-Powered Intelligence Fusion Hub</title>
+    <!-- Vis.js for Network Graph -->
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <!-- Marked.js for Markdown Report Rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        :root {
+            --bg-main: #0b1120;
+            --bg-card: #151f32;
+            --bg-card-hover: #1e2d48;
+            --border-color: #263554;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-blue: #38bdf8;
+            --accent-green: #22c55e;
+            --accent-red: #ef4444;
+            --accent-amber: #f59e0b;
+            --accent-purple: #a855f7;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg-main); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+        /* Top Navbar */
+        header {
+            background: #0f172a;
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 20;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .brand h1 { font-size: 20px; font-weight: 700; color: #fff; letter-spacing: 0.5px; }
+        .badge-gov {
+            background: rgba(56, 189, 248, 0.15);
+            color: var(--accent-blue);
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .case-selector {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        select, input, button, textarea {
+            background: var(--bg-card);
+            color: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 7px 12px;
+            font-size: 13px;
+            outline: none;
+        }
+        select:focus, input:focus, textarea:focus { border-color: var(--accent-blue); }
+        .btn-primary {
+            background: #0284c7;
+            border-color: #0284c7;
+            cursor: pointer;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-primary:hover { background: #0369a1; }
+        .btn-secondary {
+            background: var(--bg-card);
+            cursor: pointer;
+        }
+        .btn-secondary:hover { background: var(--bg-card-hover); }
+
+        /* Tabs Nav */
+        .tabs-bar {
+            background: #0d1526;
+            border-bottom: 1px solid var(--border-color);
+            padding: 0 24px;
+            display: flex;
+            gap: 8px;
+        }
+        .tab-btn {
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid transparent;
+            padding: 12px 16px;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .tab-btn:hover { color: #fff; }
+        .tab-btn.active {
+            color: var(--accent-blue);
+            border-bottom-color: var(--accent-blue);
+        }
+
+        /* Main Workspace */
+        main { flex: 1; position: relative; overflow: hidden; }
+        .tab-content { display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
+        .tab-content.active { display: flex; }
+
+        /* TAB 1: KNOWLEDGE GRAPH */
+        #tab-graph { position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; }
+        #network-container { position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: 100%; height: 100%; background: #070d18; }
+
+        .graph-search-panel {
+            position: absolute; top: 16px; left: 16px;
+            width: 320px; background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--border-color); border-radius: 8px; padding: 14px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 10;
+        }
+        .graph-details-panel {
+            position: absolute; top: 16px; right: 16px;
+            width: 340px; max-height: 80%; overflow-y: auto;
+            background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px);
+            border: 1px solid var(--border-color); border-radius: 8px; padding: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 10; display: none;
+        }
+        .graph-legend {
+            position: absolute; bottom: 16px; left: 16px;
+            background: rgba(15, 23, 42, 0.95); border: 1px solid var(--border-color);
+            border-radius: 8px; padding: 10px 14px; font-size: 11px; z-index: 10;
+            display: flex; gap: 12px;
+        }
+        .legend-item { display: flex; align-items: center; gap: 6px; }
+        .legend-dot { width: 9px; height: 9px; border-radius: 50%; }
+
+        /* TAB 2: GROUNDED RAG QA */
+        .qa-container {
+            width: 100%; height: 100%; display: flex; padding: 20px; gap: 20px;
+        }
+        .chat-column {
+            flex: 1; display: flex; flex-direction: column; background: var(--bg-card);
+            border: 1px solid var(--border-color); border-radius: 10px; overflow: hidden;
+        }
+        .chat-messages {
+            flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px;
+        }
+        .message-bubble {
+            max-width: 85%; padding: 14px 18px; border-radius: 8px; font-size: 14px; line-height: 1.5;
+        }
+        .msg-user { align-self: flex-end; background: #0369a1; color: #fff; }
+        .msg-assistant {
+            align-self: flex-start; background: #0d1526; border: 1px solid var(--border-color);
+        }
+        .citation-tag {
+            display: inline-block; background: rgba(56, 189, 248, 0.15); color: var(--accent-blue);
+            border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 4px; padding: 2px 6px;
+            font-size: 11px; cursor: pointer; margin: 3px 2px; font-weight: 500;
+        }
+        .citation-tag:hover { background: rgba(56, 189, 248, 0.3); }
+        .chat-input-bar {
+            padding: 14px 20px; background: #0f172a; border-top: 1px solid var(--border-color);
+            display: flex; gap: 12px;
+        }
+        .evidence-column {
+            width: 380px; background: var(--bg-card); border: 1px solid var(--border-color);
+            border-radius: 10px; padding: 18px; display: flex; flex-direction: column; overflow-y: auto;
+        }
+
+        /* TAB 3: SOURCES TABLE */
+        .full-view-container {
+            width: 100%; height: 100%; padding: 20px; display: flex; flex-direction: column; gap: 16px; overflow: hidden;
+        }
+        .table-wrap {
+            flex: 1; overflow: auto; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px;
+        }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border-color); }
+        th { background: #0d1526; color: var(--text-muted); font-weight: 600; position: sticky; top: 0; }
+        tr:hover td { background: rgba(255,255,255,0.02); }
+
+        /* TAB 4: ENTITIES & RESOLUTION REVIEW */
+        .split-container {
+            width: 100%; height: 100%; padding: 20px; display: flex; gap: 20px;
+        }
+
+        /* TAB 5: REPORTS */
+        .report-preview-box {
+            flex: 1; background: var(--bg-card); border: 1px solid var(--border-color);
+            border-radius: 8px; padding: 24px; overflow-y: auto; font-size: 14px; line-height: 1.6;
+        }
+        .report-preview-box h1, .report-preview-box h2, .report-preview-box h3 {
+            margin: 16px 0 8px 0; color: #fff;
+        }
+        .report-preview-box table { margin: 12px 0; }
+
+        /* MODAL */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+            display: none; align-items: center; justify-content: center; z-index: 100;
+        }
+        .modal-box {
+            background: #0f172a; border: 1px solid var(--border-color);
+            border-radius: 10px; width: 500px; padding: 24px; display: flex; flex-direction: column; gap: 14px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header>
+        <div class="brand">
+            <span style="font-size: 22px;">🇮🇳</span>
+            <h1>BharatOSINT</h1>
+            <span class="badge-gov">Indus AI MVP</span>
+        </div>
+
+        <div class="case-selector">
+            <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;">ACTIVE CASE:</span>
+            <select id="investigationSelect" onchange="switchInvestigation(this.value)"></select>
+            <button class="btn-primary" onclick="openNewCaseModal()">+ New Case</button>
+            <button class="btn-secondary" onclick="seedActiveCase()" title="Ingest curated 55-doc Indian OSINT corpus">⚡ Ingest Corpus</button>
+        </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <div class="tabs-bar">
+        <button class="tab-btn active" onclick="switchTab('graph')">🕸️ Knowledge Graph</button>
+        <button class="tab-btn" onclick="switchTab('qa')">💬 Grounded Q&A (RAG)</button>
+        <button class="tab-btn" onclick="switchTab('sources')">📂 Evidence Sources (<span id="count-sources">0</span>)</button>
+        <button class="tab-btn" onclick="switchTab('entities')">🏷️ Entities & Resolutions (<span id="count-entities">0</span>)</button>
+        <button class="tab-btn" onclick="switchTab('reports')">📑 OSINT Reports</button>
+        <button class="tab-btn" onclick="switchTab('audit')">📜 Audit Trail</button>
+    </div>
+
+    <!-- Main Workspace -->
+    <main>
+
+        <!-- TAB 1: KNOWLEDGE GRAPH -->
+        <div class="tab-content active" id="tab-graph">
+            <div id="network-container"></div>
+
+            <div class="graph-search-panel">
+                <input type="text" id="graphSearchInput" placeholder="🔍 Search entity..." style="width: 100%; margin-bottom: 8px;">
+                <select id="graphTypeFilter" style="width: 100%;" onchange="filterGraphByType(this.value)">
+                    <option value="all">All Entity Types</option>
+                    <option value="person">Person</option>
+                    <option value="organization">Organization</option>
+                    <option value="location">Location / GPE</option>
+                    <option value="threat">Threat / Malware</option>
+                    <option value="event">Event / Operation</option>
+                </select>
+                <div id="graphSearchResults" style="max-height: 180px; overflow-y: auto; margin-top: 8px;"></div>
+            </div>
+
+            <div class="graph-details-panel" id="graphDetails">
+                <button style="float: right; background: none; border: none; font-size: 16px; cursor: pointer; color: var(--text-muted);" onclick="closeGraphDetails()">✕</button>
+                <h3 id="gdName" style="color: var(--accent-blue); margin-bottom: 8px;">Entity</h3>
+                <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">Type: <span id="gdType" style="color: #fff; font-weight: 600;">-</span></p>
+                <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">EVIDENCE / RELATIONSHIPS:</div>
+                <div id="gdConnections" style="font-size: 13px; line-height: 1.4; color: #cbd5e1; max-height: 250px; overflow-y: auto;"></div>
+            </div>
+
+            <div class="graph-legend">
+                <div class="legend-item"><div class="legend-dot" style="background: #ef4444;"></div> Person</div>
+                <div class="legend-item"><div class="legend-dot" style="background: #3b82f6;"></div> Organization</div>
+                <div class="legend-item"><div class="legend-dot" style="background: #22c55e;"></div> Location</div>
+                <div class="legend-item"><div class="legend-dot" style="background: #f59e0b;"></div> Threat / Malware</div>
+                <div class="legend-item"><div class="legend-dot" style="background: #a855f7;"></div> Event</div>
+            </div>
+        </div>
+
+        <!-- TAB 2: GROUNDED RAG QA -->
+        <div class="tab-content" id="tab-qa">
+            <div class="qa-container">
+                <div class="chat-column">
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="message-bubble msg-assistant">
+                            👋 <strong>BharatOSINT Grounded Analyst Q&A</strong><br>
+                            Ask questions regarding collected Indian cyber security advisories, incidents, digital arrest networks, or critical infrastructure threats. Every finding is strictly cited from primary source documents with hallucination control.
+                        </div>
+                    </div>
+                    <div class="chat-input-bar">
+                        <input type="text" id="qaInput" placeholder="e.g. What malware attacked AIIMS Delhi and who investigated it?" style="flex: 1;" onkeypress="if(event.key === 'Enter') askQuestion()">
+                        <button class="btn-primary" onclick="askQuestion()">Ask OSINT</button>
+                    </div>
+                </div>
+
+                <div class="evidence-column">
+                    <h3 style="font-size: 14px; color: var(--accent-blue); margin-bottom: 10px;">📄 Source Document Drawer</h3>
+                    <div id="evidenceDrawerContent" style="font-size: 13px; color: var(--text-muted); line-height: 1.5;">
+                        Click on any citation tag <code>[Source: ...]</code> in the answer to inspect the primary document text, domain, and cryptographic hash.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: SOURCES -->
+        <div class="tab-content" id="tab-sources">
+            <div class="full-view-container">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h2 style="font-size: 16px;">Primary Evidence Records (<span id="sourceTableCount">0</span>)</h2>
+                    <input type="text" id="sourceFilterInput" placeholder="Filter sources by title or domain..." style="width: 300px;" oninput="filterSourcesTable()">
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Title</th>
+                                <th>Publisher / Agency</th>
+                                <th>Publication Date</th>
+                                <th>SHA-256 Hash</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sourcesTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: ENTITIES & RESOLUTIONS -->
+        <div class="tab-content" id="tab-entities">
+            <div class="split-container">
+                <!-- Left: Entity List -->
+                <div style="flex: 1; display: flex; flex-direction: column; gap: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h2 style="font-size: 16px;">Extracted Entities</h2>
+                        <input type="text" id="entityFilterInput" placeholder="Search entities..." style="width: 200px;" oninput="filterEntitiesTable()">
+                    </div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Entity Name</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="entitiesTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Right: Resolutions & Human-In-The-Loop Review -->
+                <div style="width: 480px; display: flex; flex-direction: column; gap: 12px;">
+                    <h2 style="font-size: 16px; color: var(--accent-amber);">Human-In-The-Loop Entity Matches</h2>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Alias / Variation</th>
+                                    <th>Canonical Match</th>
+                                    <th>Score</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="resolutionsTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 5: REPORTS -->
+        <div class="tab-content" id="tab-reports">
+            <div class="full-view-container">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; gap: 12px; align-items: center;">
+                        <h2 style="font-size: 16px;">Investigation Intelligence Briefs</h2>
+                        <button class="btn-primary" onclick="generateReport()">⚡ Generate OSINT Report</button>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn-secondary" id="downloadReportBtn" onclick="downloadCurrentReport()" style="display: none;">📥 Download Markdown</button>
+                    </div>
+                </div>
+                <div class="report-preview-box" id="reportPreviewBox">
+                    <div style="color: var(--text-muted); text-align: center; margin-top: 50px;">
+                        Click <strong>"Generate OSINT Report"</strong> to synthesize all primary sources, entities, resolved aliases, and confidence-scored relationships into a formal intelligence brief.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 6: AUDIT TRAIL -->
+        <div class="tab-content" id="tab-audit">
+            <div class="full-view-container">
+                <h2 style="font-size: 16px;">System & Analytical Audit Trail</h2>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Action</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody id="auditTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- New Case Modal -->
+    <div class="modal-overlay" id="newCaseModal">
+        <div class="modal-box">
+            <h3 style="font-size: 16px;">Create New OSINT Investigation</h3>
+            <input type="text" id="newCaseTitle" placeholder="Investigation Title (e.g. Operation Deepfake Fraud Ring)">
+            <textarea id="newCaseDesc" placeholder="Investigation Objective & Scope Description..." rows="3"></textarea>
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button class="btn-secondary" onclick="closeNewCaseModal()">Cancel</button>
+                <button class="btn-primary" onclick="submitNewCase()">Create Investigation</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Document Viewer Modal -->
+    <div class="modal-overlay" id="docModal">
+        <div class="modal-box" style="width: 700px; max-height: 85vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 id="modalDocTitle" style="color: var(--accent-blue); font-size: 15px;">Document</h3>
+                <button style="background: none; border: none; color: #fff; cursor: pointer; font-size: 16px;" onclick="closeDocModal()">✕</button>
+            </div>
+            <div id="modalDocMeta" style="font-size: 12px; color: var(--text-muted);"></div>
+            <hr style="border: 0; border-top: 1px solid var(--border-color);">
+            <div id="modalDocContent" style="font-size: 13px; line-height: 1.6; color: #cbd5e1; white-space: pre-wrap;"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentInvId = 1;
+        let networkInstance = null;
+        let allNodes = null;
+        let allEdges = null;
+        let rawSources = [];
+        let rawEntities = [];
+        let rawResolutions = [];
+        let currentReportId = null;
+
+        const typeColorMap = {
+            "person": "#ef4444",
+            "organization": "#3b82f6",
+            "location": "#22c55e",
+            "threat": "#f59e0b",
+            "event": "#a855f7"
+        };
+
+        // Initialize App
+        window.addEventListener("DOMContentLoaded", async () => {
+            await loadInvestigations();
+            await refreshActiveInvestigation();
+        });
+
+        function switchTab(tabId) {
+            document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+            document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+            event.target.classList.add("active");
+            document.getElementById(`tab-${tabId}`).classList.add("active");
+
+            if (tabId === "graph" && networkInstance) {
+                networkInstance.fit();
+            }
+        }
+
+        async function loadInvestigations() {
+            try {
+                const res = await fetch("/investigations");
+                const data = await res.json();
+                const sel = document.getElementById("investigationSelect");
+                sel.innerHTML = "";
+                data.investigations.forEach(inv => {
+                    const opt = document.createElement("option");
+                    opt.value = inv.id;
+                    opt.innerText = `#${inv.id} — ${inv.title}`;
+                    sel.appendChild(opt);
+                });
+                sel.value = currentInvId;
+            } catch (e) {
+                console.error("Failed to load investigations", e);
+            }
+        }
+
+        async function switchInvestigation(invId) {
+            currentInvId = parseInt(invId);
+            await refreshActiveInvestigation();
+        }
+
+        async function refreshActiveInvestigation() {
+            await Promise.all([
+                loadGraphData(),
+                loadSources(),
+                loadEntities(),
+                loadResolutions(),
+                loadReports(),
+                loadAudit()
+            ]);
+        }
+
+        // ----------------- GRAPH -----------------
+        async function loadGraphData() {
+            const container = document.getElementById("network-container");
+            container.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#94a3b8;font-size:14px;">⏳ Loading knowledge graph...</div>`;
+            try {
+                const res = await fetch(`/investigations/${currentInvId}/graph`);
+                const data = await res.json();
+
+                if (data.total_nodes === 0) {
+                    container.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#94a3b8;font-size:14px;">No entities found. Click <strong style="color:#38bdf8;">⚡ Ingest Corpus</strong> first.</div>`;
+                    return;
+                }
+
+                // Limit to max 300 nodes for performance; prefer entities with most connections
+                const MAX_NODES = 300;
+                let nodes = data.nodes;
+                let edges = data.edges;
+
+                if (nodes.length > MAX_NODES) {
+                    // Count connections per node
+                    const connCount = {};
+                    edges.forEach(e => {
+                        connCount[e.source] = (connCount[e.source] || 0) + 1;
+                        connCount[e.target] = (connCount[e.target] || 0) + 1;
+                    });
+                    nodes = nodes
+                        .sort((a, b) => (connCount[b.id] || 0) - (connCount[a.id] || 0))
+                        .slice(0, MAX_NODES);
+                    const nodeIdSet = new Set(nodes.map(n => n.id));
+                    edges = edges.filter(e => nodeIdSet.has(e.source) && nodeIdSet.has(e.target));
+                }
+
+                const nodeItems = nodes.map(n => ({
+                    id: n.id,
+                    label: n.label.length > 22 ? n.label.substring(0, 20) + "…" : n.label,
+                    title: `${n.type}: ${n.label}`,
+                    group: n.type,
+                    color: {
+                        background: typeColorMap[n.type] || "#64748b",
+                        border: "#ffffff",
+                        highlight: { background: "#ffffff", border: typeColorMap[n.type] || "#64748b" }
+                    },
+                    font: { color: "#111827", size: 11, face: "Arial" },
+                    size: 10
+                }));
+
+                const edgeItems = edges.map(e => ({
+                    id: e.id,
+                    from: e.source,
+                    to: e.target,
+                    label: "",
+                    _relLabel: e.label,
+                    evidence: e.evidence || "",
+                    confidence: e.confidence || 1.0,
+                    title: e.evidence || e.label || "",
+                    color: { color: "#475569", opacity: 0.4 },
+                    arrows: { to: { enabled: true, scaleFactor: 0.5 } },
+                    width: 1,
+                    smooth: { type: "dynamic" }
+                }));
+
+                allNodes = new vis.DataSet(nodeItems);
+                allEdges = new vis.DataSet(edgeItems);
+
+                container.innerHTML = "";
+
+                const graphData = { nodes: allNodes, edges: allEdges };
+                const options = {
+                    autoResize: true,
+                    nodes: {
+                        shape: "dot",
+                        size: 10,
+                        borderWidth: 1,
+                        scaling: { min: 8, max: 22 }
+                    },
+                    edges: {
+                        width: 1,
+                        selectionWidth: 2,
+                        smooth: { enabled: true, type: "dynamic" }
+                    },
+                    physics: {
+                        enabled: true,
+                        stabilization: { enabled: true, iterations: 150, fit: true },
+                        barnesHut: {
+                            gravitationalConstant: -2000,
+                            centralGravity: 0.15,
+                            springLength: 120,
+                            springConstant: 0.04,
+                            damping: 0.5,
+                            avoidOverlap: 0.8
+                        }
+                    },
+                    interaction: {
+                        hover: true,
+                        navigationButtons: true,
+                        keyboard: false,
+                        tooltipDelay: 100,
+                        hideEdgesOnDrag: true
+                    }
+                };
+
+                networkInstance = new vis.Network(container, graphData, options);
+
+                // Fit view after physics stabilizes
+                networkInstance.once("stabilizationIterationsDone", () => {
+                    networkInstance.fit({ animation: { duration: 600, easingFunction: "easeInOutQuad" } });
+                    networkInstance.setOptions({ physics: { enabled: false } });
+                });
+
+                // Also fit immediately as fallback
+                setTimeout(() => {
+                    if (networkInstance) networkInstance.fit();
+                }, 800);
+
+                networkInstance.on("click", (params) => {
+                    if (params.nodes.length > 0) {
+                        showNodeDetails(params.nodes[0]);
+                    } else if (params.edges.length > 0) {
+                        showEdgeDetails(params.edges[0]);
+                    } else {
+                        closeGraphDetails();
+                    }
+                });
+
+                // Update stats in legend area
+                document.querySelector(".graph-legend").setAttribute("title",
+                    `${data.total_nodes} total entities • ${data.total_edges} total relationships (showing top ${nodes.length})`);
+
+            } catch (e) {
+                console.error("Failed to load graph", e);
+                container.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#ef4444;font-size:14px;">Failed to load graph: ${e.message}</div>`;
+            }
+        }
+
+
+        function showNodeDetails(nodeId) {
+            const node = allNodes.get(nodeId);
+            if (!node) return;
+            document.getElementById("gdName").innerText = node.label;
+            document.getElementById("gdType").innerText = node.group;
+
+            const connectedEdges = networkInstance.getConnectedEdges(nodeId);
+            const edgeDetails = connectedEdges.map(eid => {
+                const edge = allEdges.get(eid);
+                const otherId = edge.from === nodeId ? edge.to : edge.from;
+                const otherNode = allNodes.get(otherId);
+                return `• <strong>${edge.label}</strong> → ${otherNode?.label || otherId}<br><span style="color:#64748b; font-size:11px;">"${edge.evidence || 'Co-occurrence'}" (Conf: ${edge.confidence})</span>`;
+            }).join("<br><br>");
+
+            document.getElementById("gdConnections").innerHTML = edgeDetails || "No connected edges.";
+            document.getElementById("graphDetails").style.display = "block";
+        }
+
+        function showEdgeDetails(edgeId) {
+            const edge = allEdges.get(edgeId);
+            if (!edge) return;
+            const fromNode = allNodes.get(edge.from);
+            const toNode = allNodes.get(edge.to);
+            document.getElementById("gdName").innerText = `${edge.label}`;
+            document.getElementById("gdType").innerText = `Relationship (Confidence: ${edge.confidence})`;
+            document.getElementById("gdConnections").innerHTML = `
+                <strong>Path:</strong> ${fromNode?.label} → ${toNode?.label}<br><br>
+                <strong>Supporting Evidence:</strong><br>
+                <div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:4px;">"${edge.evidence}"</div>
+            `;
+            document.getElementById("graphDetails").style.display = "block";
+        }
+
+        function closeGraphDetails() {
+            document.getElementById("graphDetails").style.display = "none";
+        }
+
+        function filterGraphByType(selectedType) {
+            if (!allNodes) return;
+            allNodes.update(allNodes.get().map(n => ({
+                id: n.id,
+                hidden: selectedType !== "all" && n.group !== selectedType
+            })));
+        }
+
+        // ----------------- QA (RAG) -----------------
+        async function askQuestion() {
+            const qInput = document.getElementById("qaInput");
+            const query = qInput.value.trim();
+            if (!query) return;
+
+            const chatBox = document.getElementById("chatMessages");
+            chatBox.innerHTML += `<div class="message-bubble msg-user">${escapeHtml(query)}</div>`;
+            qInput.value = "";
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            const loadingId = `load-${Date.now()}`;
+            chatBox.innerHTML += `<div class="message-bubble msg-assistant" id="${loadingId}">⏳ Synthesizing evidence across intelligence workspace...</div>`;
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            try {
+                const res = await fetch("/ask", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ query: query, investigation_id: currentInvId })
+                });
+                const data = await res.json();
+                document.getElementById(loadingId).remove();
+
+                // Format inline citations into clickable tags
+                let formatted = escapeHtml(data.answer);
+                formatted = formatted.replace(/\[Source:\s*(.+?)\s*\|\s*Doc\s*#(\d+)\]/g, (match, title, docId) => {
+                    return `<span class="citation-tag" onclick="openDocModalById(${docId})">📄 Doc #${docId}: ${title.substring(0, 30)}...</span>`;
+                });
+
+                chatBox.innerHTML += `
+                    <div class="message-bubble msg-assistant">
+                        ${formatted.replace(/\n/g, '<br>')}
+                        <div style="margin-top: 8px; font-size: 11px; color: #64748b;">
+                            Mode: <code>${data.mode}</code> | Grounded: <code>${data.grounded}</code> | Citation Coverage: <code>${(data.citation_coverage * 100).toFixed(0)}%</code>
+                        </div>
+                    </div>
+                `;
+                chatBox.scrollTop = chatBox.scrollHeight;
+
+                // Update drawer
+                if (data.evidence_sources && data.evidence_sources.length > 0) {
+                    const drawerHtml = data.evidence_sources.map(s => `
+                        <div style="margin-bottom: 12px; padding: 8px; background: rgba(255,255,255,0.03); border-radius: 6px;">
+                            <strong style="color:#fff;">Doc #${s.source_id}:</strong> ${escapeHtml(s.title)}<br>
+                            <span style="font-size: 11px; color: var(--accent-blue);">Relevance Score: ${s.score}</span><br>
+                            <button class="btn-secondary" style="margin-top:6px; font-size:11px; padding:3px 8px;" onclick="openDocModalById(${s.source_id})">Inspect Record</button>
+                        </div>
+                    `).join("");
+                    document.getElementById("evidenceDrawerContent").innerHTML = drawerHtml;
+                }
+
+            } catch (e) {
+                document.getElementById(loadingId).remove();
+                chatBox.innerHTML += `<div class="message-bubble msg-assistant" style="color: #ef4444;">Error generating response. Please try again.</div>`;
+            }
+        }
+
+        // ----------------- SOURCES -----------------
+        async function loadSources() {
+            const res = await fetch(`/investigations/${currentInvId}/sources`);
+            const data = await res.json();
+            rawSources = data.sources;
+            document.getElementById("count-sources").innerText = rawSources.length;
+            document.getElementById("sourceTableCount").innerText = rawSources.length;
+            renderSourcesTable(rawSources);
+        }
+
+        function renderSourcesTable(sources) {
+            const tbody = document.getElementById("sourcesTableBody");
+            tbody.innerHTML = sources.map(s => `
+                <tr>
+                    <td>#${s.id}</td>
+                    <td><strong>${escapeHtml(s.title)}</strong></td>
+                    <td>${escapeHtml(s.author || s.domain)}</td>
+                    <td>${s.publication_date || '-'}</td>
+                    <td><code>${(s.doc_hash || '').substring(0, 10)}...</code></td>
+                    <td><button class="btn-secondary" onclick="openDocModalById(${s.id})">View</button></td>
+                </tr>
+            `).join("");
+        }
+
+        function filterSourcesTable() {
+            const q = document.getElementById("sourceFilterInput").value.toLowerCase();
+            const filtered = rawSources.filter(s => s.title.toLowerCase().includes(q) || (s.author || '').toLowerCase().includes(q) || (s.domain || '').toLowerCase().includes(q));
+            renderSourcesTable(filtered);
+        }
+
+        // ----------------- ENTITIES & RESOLUTIONS -----------------
+        async function loadEntities() {
+            const res = await fetch(`/investigations/${currentInvId}/entities`);
+            const data = await res.json();
+            rawEntities = data.entities;
+            document.getElementById("count-entities").innerText = rawEntities.length;
+            renderEntitiesTable(rawEntities);
+        }
+
+        function renderEntitiesTable(entities) {
+            const tbody = document.getElementById("entitiesTableBody");
+            tbody.innerHTML = entities.slice(0, 100).map(e => `
+                <tr>
+                    <td>#${e.id}</td>
+                    <td><strong>${escapeHtml(e.name)}</strong></td>
+                    <td><span class="badge-gov" style="color:${typeColorMap[e.entity_type] || '#fff'};">${e.entity_type}</span></td>
+                    <td>${e.is_canonical ? 'Canonical' : 'Alias'}</td>
+                </tr>
+            `).join("");
+        }
+
+        async function loadResolutions() {
+            const res = await fetch(`/investigations/${currentInvId}/resolutions`);
+            const data = await res.json();
+            rawResolutions = data.resolutions;
+            renderResolutionsTable(rawResolutions);
+        }
+
+        function renderResolutionsTable(resolutions) {
+            const tbody = document.getElementById("resolutionsTableBody");
+            if (!resolutions.length) {
+                tbody.innerHTML = `<tr><td colspan="4" style="color:var(--text-muted); text-align:center;">No pending resolution matches.</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = resolutions.map(r => `
+                <tr>
+                    <td><strong>${escapeHtml(r.alias_name)}</strong></td>
+                    <td>${escapeHtml(r.canonical_name)}</td>
+                    <td><code>${r.match_score.toFixed(2)}</code></td>
+                    <td>
+                        ${r.status === 'needs_review' ? `
+                            <button class="btn-primary" style="padding:2px 6px; font-size:11px;" onclick="reviewRes(${r.id}, 'approved')">Approve</button>
+                            <button class="btn-secondary" style="padding:2px 6px; font-size:11px;" onclick="reviewRes(${r.id}, 'rejected')">Reject</button>
+                        ` : `<span style="font-size:11px; color:var(--text-muted);">${r.status}</span>`}
+                    </td>
+                </tr>
+            `).join("");
+        }
+
+        async function reviewRes(resId, status) {
+            await fetch(`/resolutions/${resId}/review`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ status })
+            });
+            await loadResolutions();
+        }
+
+        // ----------------- REPORTS -----------------
+        async function loadReports() {
+            const res = await fetch(`/investigations/${currentInvId}/reports`);
+            const data = await res.json();
+            if (data.reports.length > 0) {
+                const latestId = data.reports[0].id;
+                await previewReport(latestId);
+            }
+        }
+
+        async function generateReport() {
+            const btn = event.target;
+            btn.innerText = "⏳ Generating OSINT Brief...";
+            try {
+                const res = await fetch(`/investigations/${currentInvId}/report`, { method: "POST" });
+                const data = await res.json();
+                btn.innerText = "⚡ Generate OSINT Report";
+                if (data.report_id) {
+                    await previewReport(data.report_id);
+                }
+            } catch (e) {
+                btn.innerText = "⚡ Generate OSINT Report";
+                alert("Failed to generate report.");
+            }
+        }
+
+        async function previewReport(reportId) {
+            currentReportId = reportId;
+            const res = await fetch(`/reports/${reportId}`);
+            const data = await res.json();
+            document.getElementById("reportPreviewBox").innerHTML = marked.parse(data.report.content_markdown);
+            document.getElementById("downloadReportBtn").style.display = "inline-flex";
+        }
+
+        function downloadCurrentReport() {
+            if (currentReportId) {
+                window.location.href = `/reports/${currentReportId}/download`;
+            }
+        }
+
+        // ----------------- AUDIT -----------------
+        async function loadAudit() {
+            const res = await fetch(`/investigations/${currentInvId}/audit`);
+            const data = await res.json();
+            const tbody = document.getElementById("auditTableBody");
+            tbody.innerHTML = data.audit_logs.map(a => `
+                <tr>
+                    <td style="color:var(--text-muted); font-size:12px;">${a.timestamp.substring(0, 19).replace('T', ' ')}</td>
+                    <td><code>${a.action}</code></td>
+                    <td>${escapeHtml(a.details)}</td>
+                </tr>
+            `).join("");
+        }
+
+        // ----------------- ACTIONS -----------------
+        async function seedActiveCase() {
+            if (!confirm(`Ingest curated 55-record Indian OSINT corpus into Case #${currentInvId}?`)) return;
+            const res = await fetch(`/investigations/${currentInvId}/seed`, { method: "POST" });
+            const data = await res.json();
+            alert(data.message);
+            await refreshActiveInvestigation();
+        }
+
+        function openNewCaseModal() { document.getElementById("newCaseModal").style.display = "flex"; }
+        function closeNewCaseModal() { document.getElementById("newCaseModal").style.display = "none"; }
+
+        async function submitNewCase() {
+            const title = document.getElementById("newCaseTitle").value.trim();
+            const desc = document.getElementById("newCaseDesc").value.trim();
+            if (!title) return alert("Title required");
+            const res = await fetch("/investigations", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ title, description: desc })
+            });
+            const data = await res.json();
+            closeNewCaseModal();
+            await loadInvestigations();
+            switchInvestigation(data.investigation_id);
+        }
+
+        async function openDocModalById(sourceId) {
+            const res = await fetch(`/sources/${sourceId}`);
+            const data = await res.json();
+            const s = data.source;
+            document.getElementById("modalDocTitle").innerText = `#${s.id}: ${s.title}`;
+            document.getElementById("modalDocMeta").innerText = `Publisher: ${s.author || s.domain} | Date: ${s.publication_date || 'N/A'} | Hash: ${s.doc_hash}`;
+            document.getElementById("modalDocContent").innerText = s.content;
+            document.getElementById("docModal").style.display = "flex";
+        }
+        function closeDocModal() { document.getElementById("docModal").style.display = "none"; }
+
+        function escapeHtml(text) {
+            if (!text) return "";
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+    </script>
+</body>
+</html>

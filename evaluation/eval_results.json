@@ -1,0 +1,22 @@
+{
+  "ner_metrics": {
+    "true_positives": 20,
+    "false_positives": 2,
+    "false_negatives": 0,
+    "precision": 0.909,
+    "recall": 1.0,
+    "f1_score": 0.952
+  },
+  "entity_resolution_metrics": {
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1_score": 1.0
+  },
+  "retrieval_and_rag_metrics": {
+    "mrr": 1.0,
+    "recall_at_5": 1.0,
+    "citation_coverage": 1.0,
+    "hallucination_safeguards_pass": true
+  }
+}

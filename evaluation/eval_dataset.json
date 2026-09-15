@@ -1,0 +1,139 @@
+{
+  "ner_evaluation_set": [
+    {
+      "text": "Union Minister Ashwini Vaishnaw at MeitY in New Delhi reviewed CERT-In operations with Director Sanjay Bahl.",
+      "ground_truth_entities": [
+        {"name": "Ashwini Vaishnaw", "type": "PERSON"},
+        {"name": "MeitY", "type": "ORG"},
+        {"name": "New Delhi", "type": "GPE"},
+        {"name": "CERT-In", "type": "ORG"},
+        {"name": "Sanjay Bahl", "type": "PERSON"}
+      ]
+    },
+    {
+      "text": "In Operation Chakra-II, CBI Director Praveen Sood coordinated raids across Noida and Bengaluru seizing servers.",
+      "ground_truth_entities": [
+        {"name": "Operation Chakra-II", "type": "EVENT"},
+        {"name": "CBI", "type": "ORG"},
+        {"name": "Praveen Sood", "type": "PERSON"},
+        {"name": "Noida", "type": "GPE"},
+        {"name": "Bengaluru", "type": "GPE"}
+      ]
+    },
+    {
+      "text": "The LockBit 3.0 ransomware attack crippled AIIMS in New Delhi before Delhi Police Special Cell intervened.",
+      "ground_truth_entities": [
+        {"name": "LockBit 3.0", "type": "THREAT"},
+        {"name": "AIIMS", "type": "ORG"},
+        {"name": "New Delhi", "type": "GPE"},
+        {"name": "Delhi Police Special Cell", "type": "ORG"}
+      ]
+    },
+    {
+      "text": "Dtrack trojan variants linked to Lazarus threat group infiltrated administrative systems at Kudankulam Nuclear Power Plant in Tamil Nadu.",
+      "ground_truth_entities": [
+        {"name": "Dtrack", "type": "THREAT"},
+        {"name": "Lazarus", "type": "THREAT"},
+        {"name": "Kudankulam Nuclear Power Plant", "type": "ORG"},
+        {"name": "Tamil Nadu", "type": "GPE"}
+      ]
+    },
+    {
+      "text": "Home Minister Amit Shah inaugurated the National Cyber Forensics Laboratory at I4C headquarters in New Delhi.",
+      "ground_truth_entities": [
+        {"name": "Amit Shah", "type": "PERSON"},
+        {"name": "I4C", "type": "ORG"},
+        {"name": "New Delhi", "type": "GPE"}
+      ]
+    }
+  ],
+  "entity_resolution_set": [
+    {
+      "alias": "CBI",
+      "expected_canonical": "Central Bureau of Investigation",
+      "expected_match": true,
+      "entity_type": "organization"
+    },
+    {
+      "alias": "Central Bureau of Investigation",
+      "expected_canonical": "Central Bureau of Investigation",
+      "expected_match": true,
+      "entity_type": "organization"
+    },
+    {
+      "alias": "Mohd Azam",
+      "expected_canonical": "Mohammad Azam",
+      "expected_match": true,
+      "entity_type": "person"
+    },
+    {
+      "alias": "Laxmi Narayan",
+      "expected_canonical": "Lakshmi Narayan",
+      "expected_match": true,
+      "entity_type": "person"
+    },
+    {
+      "alias": "Director Praveen Sood",
+      "expected_canonical": "Praveen Sood",
+      "expected_match": true,
+      "entity_type": "person"
+    },
+    {
+      "alias": "CERT-In",
+      "expected_canonical": "Indian Computer Emergency Response Team",
+      "expected_match": true,
+      "entity_type": "organization"
+    },
+    {
+      "alias": "Suneel Chaudhary",
+      "expected_canonical": "Sunil Chaudhary",
+      "expected_match": true,
+      "entity_type": "person"
+    },
+    {
+      "alias": "Dr. Sanjay Bahl",
+      "expected_canonical": "Sanjay Bahl",
+      "expected_match": true,
+      "entity_type": "person"
+    },
+    {
+      "alias": "Cyberabad Police",
+      "expected_canonical": "Delhi Police",
+      "expected_match": false,
+      "entity_type": "organization"
+    },
+    {
+      "alias": "Ransomware Akira",
+      "expected_canonical": "Dtrack Trojan",
+      "expected_match": false,
+      "entity_type": "threat"
+    }
+  ],
+  "retrieval_and_qa_set": [
+    {
+      "query": "Which hospital in New Delhi was attacked by LockBit 3.0 ransomware?",
+      "expected_keywords": ["AIIMS", "LockBit", "New Delhi"],
+      "expected_insufficient": false
+    },
+    {
+      "query": "What malware targeted the supervisory SCADA network load dispatch centres in power grid?",
+      "expected_keywords": ["ShadowPad", "RedEcho", "PowerGrid"],
+      "expected_insufficient": false
+    },
+    {
+      "query": "What was the operation codenamed by CBI to dismantle call centre fraud syndicates?",
+      "expected_keywords": ["Operation Chakra-II", "CBI"],
+      "expected_insufficient": false
+    },
+    {
+      "query": "Which nuclear power plant detected Dtrack trojan in its administrative PC?",
+      "expected_keywords": ["Kudankulam", "Dtrack", "KKNPP"],
+      "expected_insufficient": false
+    },
+    {
+      "query": "What is the population of the Andromeda galaxy?",
+      "expected_keywords": [],
+      "expected_insufficient": true
+    }
+  ]
+}
