@@ -10,9 +10,11 @@ DB_NAME = os.path.join(
 
 
 def get_connection():
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_NAME, timeout=30.0)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("PRAGMA journal_mode = WAL")
+    conn.execute("PRAGMA busy_timeout = 30000")
     return conn
 
 
@@ -204,14 +206,10 @@ def get_investigations():
     conn = get_connection()
     rows = conn.execute("""
         SELECT i.id, i.title, i.description, i.status, i.created_at,
-               COUNT(DISTINCT s.id) as source_count,
-               COUNT(DISTINCT e.id) as entity_count,
-               COUNT(DISTINCT r.id) as relationship_count
+               (SELECT COUNT(*) FROM sources WHERE investigation_id = i.id) as source_count,
+               (SELECT COUNT(*) FROM entities WHERE investigation_id = i.id) as entity_count,
+               (SELECT COUNT(*) FROM relationships WHERE investigation_id = i.id) as relationship_count
         FROM investigations i
-        LEFT JOIN sources s ON s.investigation_id = i.id
-        LEFT JOIN entities e ON e.investigation_id = i.id
-        LEFT JOIN relationships r ON r.investigation_id = i.id
-        GROUP BY i.id
         ORDER BY i.id ASC
     """).fetchall()
     conn.close()

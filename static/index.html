@@ -142,6 +142,22 @@
         .legend-item { display: flex; align-items: center; gap: 6px; }
         .legend-dot { width: 9px; height: 9px; border-radius: 50%; }
 
+        .search-item {
+            padding: 7px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #cbd5e1;
+            transition: background 0.15s;
+        }
+        .search-item:hover {
+            background: #1e293b;
+            color: #fff;
+        }
+
         /* TAB 2: GROUNDED RAG QA */
         .qa-container {
             width: 100%; height: 100%; display: flex; padding: 20px; gap: 20px;
@@ -509,6 +525,8 @@
             ]);
         }
 
+        let rawGraphData = null;
+
         // ----------------- GRAPH -----------------
         async function loadGraphData() {
             const container = document.getElementById("network-container");
@@ -516,19 +534,19 @@
             try {
                 const res = await fetch(`/investigations/${currentInvId}/graph`);
                 const data = await res.json();
+                rawGraphData = data;
 
                 if (data.total_nodes === 0) {
                     container.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#94a3b8;font-size:14px;">No entities found. Click <strong style="color:#38bdf8;">⚡ Ingest Corpus</strong> first.</div>`;
                     return;
                 }
 
-                // Limit to max 300 nodes for performance; prefer entities with most connections
-                const MAX_NODES = 300;
+                // Limit initial render to top 120 most-connected nodes for instant rendering
+                const MAX_NODES = 120;
                 let nodes = data.nodes;
                 let edges = data.edges;
 
                 if (nodes.length > MAX_NODES) {
-                    // Count connections per node
                     const connCount = {};
                     edges.forEach(e => {
                         connCount[e.source] = (connCount[e.source] || 0) + 1;
@@ -552,7 +570,7 @@
                         highlight: { background: "#ffffff", border: typeColorMap[n.type] || "#64748b" }
                     },
                     font: { color: "#111827", size: 11, face: "Arial" },
-                    size: 10
+                    size: 11
                 }));
 
                 const edgeItems = edges.map(e => ({
@@ -564,7 +582,7 @@
                     evidence: e.evidence || "",
                     confidence: e.confidence || 1.0,
                     title: e.evidence || e.label || "",
-                    color: { color: "#475569", opacity: 0.4 },
+                    color: { color: "#475569", opacity: 0.35 },
                     arrows: { to: { enabled: true, scaleFactor: 0.5 } },
                     width: 1,
                     smooth: { type: "dynamic" }
@@ -578,26 +596,17 @@
                 const graphData = { nodes: allNodes, edges: allEdges };
                 const options = {
                     autoResize: true,
-                    nodes: {
-                        shape: "dot",
-                        size: 10,
-                        borderWidth: 1,
-                        scaling: { min: 8, max: 22 }
-                    },
-                    edges: {
-                        width: 1,
-                        selectionWidth: 2,
-                        smooth: { enabled: true, type: "dynamic" }
-                    },
+                    nodes: { shape: "dot", size: 11, borderWidth: 1 },
+                    edges: { width: 1, selectionWidth: 2, smooth: { enabled: true, type: "dynamic" } },
                     physics: {
                         enabled: true,
-                        stabilization: { enabled: true, iterations: 150, fit: true },
+                        stabilization: { enabled: true, iterations: 40, fit: true },
                         barnesHut: {
-                            gravitationalConstant: -2000,
-                            centralGravity: 0.15,
-                            springLength: 120,
-                            springConstant: 0.04,
-                            damping: 0.5,
+                            gravitationalConstant: -1800,
+                            centralGravity: 0.2,
+                            springLength: 100,
+                            springConstant: 0.05,
+                            damping: 0.6,
                             avoidOverlap: 0.8
                         }
                     },
@@ -612,16 +621,18 @@
 
                 networkInstance = new vis.Network(container, graphData, options);
 
-                // Fit view after physics stabilizes
+                // Stop physics immediately after stabilization so the page doesn't lag
                 networkInstance.once("stabilizationIterationsDone", () => {
-                    networkInstance.fit({ animation: { duration: 600, easingFunction: "easeInOutQuad" } });
+                    networkInstance.fit();
                     networkInstance.setOptions({ physics: { enabled: false } });
                 });
 
-                // Also fit immediately as fallback
                 setTimeout(() => {
-                    if (networkInstance) networkInstance.fit();
-                }, 800);
+                    if (networkInstance) {
+                        networkInstance.fit();
+                        networkInstance.setOptions({ physics: { enabled: false } });
+                    }
+                }, 500);
 
                 networkInstance.on("click", (params) => {
                     if (params.nodes.length > 0) {
@@ -633,9 +644,8 @@
                     }
                 });
 
-                // Update stats in legend area
-                document.querySelector(".graph-legend").setAttribute("title",
-                    `${data.total_nodes} total entities • ${data.total_edges} total relationships (showing top ${nodes.length})`);
+                // Setup Search & Autocomplete
+                setupGraphSearch();
 
             } catch (e) {
                 console.error("Failed to load graph", e);
@@ -643,6 +653,115 @@
             }
         }
 
+        function setupGraphSearch() {
+            const sInput = document.getElementById("graphSearchInput");
+            const sResults = document.getElementById("graphSearchResults");
+
+            sInput.oninput = function() {
+                const q = this.value.trim().toLowerCase();
+                if (!q || !rawGraphData) {
+                    sResults.innerHTML = "";
+                    return;
+                }
+                const selectedType = document.getElementById("graphTypeFilter").value;
+                const matches = rawGraphData.nodes.filter(n => {
+                    const typeMatch = selectedType === "all" || n.type === selectedType;
+                    const textMatch = n.label.toLowerCase().includes(q) || n.type.toLowerCase().includes(q);
+                    return typeMatch && textMatch;
+                });
+
+                if (matches.length === 0) {
+                    sResults.innerHTML = `<div style="padding:8px; font-size:12px; color:#94a3b8;">No entities found.</div>`;
+                    return;
+                }
+
+                sResults.innerHTML = matches.slice(0, 10).map(m => `
+                    <div class="search-item" onclick="selectGraphNode(${m.id})">
+                        <span class="legend-dot" style="background:${typeColorMap[m.type] || '#64748b'};"></span>
+                        <strong>${escapeHtml(m.label)}</strong>
+                        <span style="font-size:10px; color:#94a3b8; margin-left:auto;">${m.type}</span>
+                    </div>
+                `).join("");
+            };
+
+            sInput.onkeydown = function(e) {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    const firstItem = sResults.querySelector(".search-item");
+                    if (firstItem) {
+                        firstItem.click();
+                    }
+                }
+            };
+        }
+
+        function selectGraphNode(nodeId) {
+            if (!rawGraphData) return;
+            const targetNode = rawGraphData.nodes.find(n => n.id === nodeId);
+            if (!targetNode) return;
+
+            // If the node is not in allNodes, add it and its connected edges
+            if (!allNodes.get(nodeId)) {
+                allNodes.add({
+                    id: targetNode.id,
+                    label: targetNode.label.length > 22 ? targetNode.label.substring(0, 20) + "…" : targetNode.label,
+                    title: `${targetNode.type}: ${targetNode.label}`,
+                    group: targetNode.type,
+                    color: {
+                        background: typeColorMap[targetNode.type] || "#64748b",
+                        border: "#ffffff",
+                        highlight: { background: "#ffffff", border: typeColorMap[targetNode.type] || "#64748b" }
+                    },
+                    font: { color: "#111827", size: 11, face: "Arial" },
+                    size: 14
+                });
+
+                const relatedEdges = rawGraphData.edges.filter(e => e.source === nodeId || e.target === nodeId);
+                relatedEdges.forEach(e => {
+                    if (!allEdges.get(e.id)) {
+                        const otherId = e.source === nodeId ? e.target : e.source;
+                        if (!allNodes.get(otherId)) {
+                            const otherNode = rawGraphData.nodes.find(n => n.id === otherId);
+                            if (otherNode) {
+                                allNodes.add({
+                                    id: otherNode.id,
+                                    label: otherNode.label.length > 22 ? otherNode.label.substring(0, 20) + "…" : otherNode.label,
+                                    title: `${otherNode.type}: ${otherNode.label}`,
+                                    group: otherNode.type,
+                                    color: { background: typeColorMap[otherNode.type] || "#64748b", border: "#ffffff" },
+                                    font: { color: "#111827", size: 11 },
+                                    size: 10
+                                });
+                            }
+                        }
+                        allEdges.add({
+                            id: e.id,
+                            from: e.source,
+                            to: e.target,
+                            label: "",
+                            _relLabel: e.label,
+                            evidence: e.evidence || "",
+                            confidence: e.confidence || 1.0,
+                            title: e.evidence || e.label || "",
+                            color: { color: "#ef4444", opacity: 0.8 },
+                            width: 2,
+                            arrows: { to: { enabled: true, scaleFactor: 0.5 } }
+                        });
+                    }
+                });
+            }
+
+            // Focus and highlight
+            networkInstance.focus(nodeId, {
+                scale: 1.6,
+                animation: { duration: 500, easingFunction: "easeInOutQuad" }
+            });
+            networkInstance.selectNodes([nodeId]);
+            showNodeDetails(nodeId);
+
+            document.getElementById("graphSearchInput").value = targetNode.label;
+            document.getElementById("graphSearchResults").innerHTML = "";
+        }
 
         function showNodeDetails(nodeId) {
             const node = allNodes.get(nodeId);
@@ -655,7 +774,7 @@
                 const edge = allEdges.get(eid);
                 const otherId = edge.from === nodeId ? edge.to : edge.from;
                 const otherNode = allNodes.get(otherId);
-                return `• <strong>${edge.label}</strong> → ${otherNode?.label || otherId}<br><span style="color:#64748b; font-size:11px;">"${edge.evidence || 'Co-occurrence'}" (Conf: ${edge.confidence})</span>`;
+                return `• <strong>${edge._relLabel || edge.label}</strong> → ${otherNode?.label || otherId}<br><span style="color:#64748b; font-size:11px;">"${edge.evidence || 'Co-occurrence'}" (Conf: ${edge.confidence})</span>`;
             }).join("<br><br>");
 
             document.getElementById("gdConnections").innerHTML = edgeDetails || "No connected edges.";
@@ -667,7 +786,7 @@
             if (!edge) return;
             const fromNode = allNodes.get(edge.from);
             const toNode = allNodes.get(edge.to);
-            document.getElementById("gdName").innerText = `${edge.label}`;
+            document.getElementById("gdName").innerText = `${edge._relLabel || edge.label}`;
             document.getElementById("gdType").innerText = `Relationship (Confidence: ${edge.confidence})`;
             document.getElementById("gdConnections").innerHTML = `
                 <strong>Path:</strong> ${fromNode?.label} → ${toNode?.label}<br><br>
